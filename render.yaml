@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ecobus-control-calidad
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: WHATSAPP_URL
+        value: https://wa.me/56999990054
+      - key: WEBSITE_URL
+        value: https://www.ecobus.cl
+      - key: INSTAGRAM_URL
+        value: https://instagram.com/ecobus.cl
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ecobus-calidad-db
+          property: connectionString
+
+databases:
+  - name: ecobus-calidad-db
+    databaseName: ecobus_calidad
+    user: ecobus_calidad_user

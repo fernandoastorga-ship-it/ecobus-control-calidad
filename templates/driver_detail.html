@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <img src="/static/logo_ecobus.png">
+      <div class="title">
+        <h1>Perfil del conductor</h1>
+        <p>{{ driver.name }}</p>
+      </div>
+    </div>
+    <a class="btn secondary" href="/admin#ranking">Volver al panel</a>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="small">Evaluaciones del conductor</div><div class="stat">{{ total }}</div></div>
+    <div class="card"><div class="small">Promedio del conductor</div><div class="stat">{{ '%.2f'|format(avg_rating) }} ★</div></div>
+    <div class="card"><div class="small">Origen</div><div class="stat small-stat">Interior: {{ interior }}<br>Exterior: {{ exterior }}</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card center"><div class="small">Felicitaciones</div><div class="stat green-stat">{{ felicitaciones }}</div></div>
+    <div class="card center"><div class="small">Sugerencias</div><div class="stat yellow-stat">{{ sugerencias }}</div></div>
+    <div class="card center"><div class="small">Reclamos</div><div class="stat red-stat">{{ reclamos }}</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Resumen por bus manejado</h2>
+    <table>
+      <tr><th>Bus</th><th>Patente</th><th>Evaluaciones</th><th>Promedio</th><th>Felicitaciones</th><th>Sugerencias</th><th>Reclamos</th></tr>
+      {% for row in by_bus %}
+      <tr>
+        <td>{{ row.bus.internal_number }}</td>
+        <td>{{ row.bus.plate }}</td>
+        <td>{{ row.total }}</td>
+        <td>{{ '%.2f'|format(row.avg) }} ★</td>
+        <td><span class="pill good">{{ row.felicitaciones }}</span></td>
+        <td><span class="pill warn">{{ row.sugerencias }}</span></td>
+        <td><span class="pill bad">{{ row.reclamos }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Evaluaciones individuales de {{ driver.name }}</h2>
+    <table>
+      <tr><th>Fecha</th><th>Bus</th><th>Origen</th><th>Tipo</th><th>Nota</th><th>Comentario</th><th>Persona</th><th>Foto</th></tr>
+      {% for r in reviews %}
+      <tr>
+        <td>{{ r.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+        <td>{{ r.bus.internal_number }}<br><span class="small">{{ r.bus.plate }}</span></td>
+        <td><span class="pill">{{ r.qr_type }}</span></td>
+        <td>{{ r.observation_type }}</td>
+        <td>{{ r.rating }} ★</td>
+        <td>{{ r.comment or '-' }}</td>
+        <td>{{ 'Anónimo' if r.anonymous else (r.passenger_name or 'Sin nombre') }}</td>
+        <td>{% if r.photo_path %}<a href="{{r.photo_path}}" target="_blank"><img class="photo-thumb" src="{{r.photo_path}}"></a>{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

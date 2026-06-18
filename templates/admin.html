@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <img src="/static/logo_ecobus.png">
+      <div class="title">
+        <h1>Control de Calidad de Conducción Ecobus</h1>
+        <p>Panel administrador</p>
+      </div>
+    </div>
+    <a class="btn secondary" href="/admin/logout">Cerrar sesión</a>
+  </div>
+
+  <div class="admin-nav">
+    <a class="btn secondary" href="#ranking">Ranking conductores</a>
+    <a class="btn secondary" href="#buses">Buses</a>
+    <a class="btn secondary" href="#drivers">Conductores</a>
+    <a class="btn secondary" href="#reviews">Evaluaciones</a>
+    <a class="btn secondary" href="/admin/export/reviews.csv">Descargar CSV</a>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="small">Evaluaciones</div><div class="stat">{{ total_reviews }}</div></div>
+    <div class="card"><div class="small">Promedio general</div><div class="stat">{{ '%.2f'|format(avg_rating) }} ★</div></div>
+    <div class="card"><div class="small">Clics comerciales</div><div class="stat">{{ total_clicks }}</div></div>
+  </div>
+
+  <div class="card" id="ranking">
+    <div class="section-head">
+      <div>
+        <h2>Ranking de conductores</h2>
+        <p class="small">Ordenado principalmente por cantidad de evaluaciones recibidas. Luego considera desempeño: felicitaciones, sugerencias, reclamos y promedio de estrellas.</p>
+      </div>
+    </div>
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Conductor</th>
+        <th>Evaluaciones</th>
+        <th>Promedio</th>
+        <th>Felicitaciones</th>
+        <th>Sugerencias</th>
+        <th>Reclamos</th>
+        <th>Origen</th>
+        <th>Detalle</th>
+      </tr>
+      {% for row in driver_rankings %}
+      <tr>
+        <td><strong>{{ loop.index }}</strong></td>
+        <td>
+          <strong>{{ row.driver.name }}</strong><br>
+          <span class="small">{{ row.buses_actuales }}</span>
+        </td>
+        <td>{{ row.total }}</td>
+        <td>{{ '%.2f'|format(row.avg) }} ★</td>
+        <td><span class="pill good">{{ row.felicitaciones }}</span></td>
+        <td><span class="pill warn">{{ row.sugerencias }}</span></td>
+        <td><span class="pill bad">{{ row.reclamos }}</span></td>
+        <td><span class="small">Interior: {{ row.interior }}<br>Exterior: {{ row.exterior }}</span></td>
+        <td><a class="btn secondary" href="/admin/drivers/{{ row.driver.id }}">Ver perfil</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card" id="buses">
+    <h2>Buses</h2>
+    <div class="grid2">
+      <form method="post" action="/admin/buses">
+        <h3>Agregar bus</h3>
+        <label>N° interno</label><input name="internal_number" placeholder="Bus 14" required>
+        <label>Patente</label><input name="plate" placeholder="AB-CD-12" required>
+        <label>Tipo</label><select name="bus_type"><option>Bus</option><option>Taxibus</option><option>Van</option><option>Minibus</option></select>
+        <label>Conductor asignado</label><select name="driver_id"><option value="">Sin asignar</option>{% for d in drivers %}<option value="{{d.id}}">{{d.name}}</option>{% endfor %}</select>
+        <br><br><button class="btn">Guardar bus</button>
+      </form>
+      <div>
+        <h3>Ranking por bus</h3>
+        <table>
+          <tr><th>Bus</th><th>Patente</th><th>Conductor</th><th>Promedio</th><th>QR</th></tr>
+          {% for row in rows %}
+          <tr>
+            <td>{{row.bus.internal_number}}</td>
+            <td>{{row.bus.plate}}</td>
+            <td>{{row.bus.driver.name if row.bus.driver else 'Sin asignar'}}</td>
+            <td>{{'%.2f'|format(row.avg)}} ★<br><span class="small">{{row.reviews}} eval. / {{row.clicks}} clics</span></td>
+            <td><a class="btn secondary" href="/admin/qr/{{row.bus.id}}/interior.png">Interior PNG</a><br><br><a class="btn secondary" href="/admin/qr/{{row.bus.id}}/exterior.png">Exterior PNG</a></td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="drivers">
+    <h2>Conductores</h2>
+    <div class="grid2">
+      <form method="post" action="/admin/drivers">
+        <h3>Agregar conductor</h3>
+        <label>Nombre</label><input name="name" required>
+        <label>Teléfono opcional</label><input name="phone">
+        <br><br><button class="btn">Guardar conductor</button>
+      </form>
+      <div>
+        <h3>Asignar conductor a bus</h3>
+        <form method="post" action="/admin/assign">
+          <label>Bus</label><select name="bus_id">{% for b in buses %}<option value="{{b.id}}">{{b.internal_number}} - {{b.plate}}</option>{% endfor %}</select>
+          <label>Conductor</label><select name="driver_id"><option value="">Sin asignar</option>{% for d in drivers %}<option value="{{d.id}}">{{d.name}}</option>{% endfor %}</select>
+          <br><br><button class="btn">Asignar</button>
+        </form>
+        <br>
+        <table><tr><th>Conductor</th><th>Teléfono</th><th>Perfil</th></tr>{% for d in drivers %}<tr><td>{{d.name}}</td><td>{{d.phone or '-'}}</td><td><a class="btn secondary" href="/admin/drivers/{{d.id}}">Ver evaluaciones</a></td></tr>{% endfor %}</table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="reviews">
+    <h2>Últimas evaluaciones</h2>
+    <table>
+      <tr><th>Fecha</th><th>Bus</th><th>Origen</th><th>Conductor</th><th>Nota</th><th>Comentario</th><th>Foto</th></tr>
+      {% for r in reviews %}
+      <tr>
+        <td>{{r.created_at.strftime('%d-%m-%Y %H:%M')}}</td>
+        <td>{{r.bus.internal_number}}<br><span class="small">{{r.bus.plate}}</span></td>
+        <td><span class="pill">{{r.qr_type}}</span></td>
+        <td>{{r.driver.name if r.driver else 'Sin asignar'}}</td>
+        <td>{{r.rating}} ★<br><span class="small">{{r.observation_type}}</span></td>
+        <td>{{r.comment or '-'}}<br><span class="small">{{'Anónimo' if r.anonymous else (r.passenger_name or 'Sin nombre')}}</span></td>
+        <td>{% if r.photo_path %}<a href="{{r.photo_path}}" target="_blank"><img class="photo-thumb" src="{{r.photo_path}}"></a>{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}
